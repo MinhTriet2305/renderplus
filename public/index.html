@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Toy Store</title>
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .button-group {
+      display: flex;
+    }
+
+    .button-group button {
+      margin-left: 5px;
+    }
+
+    .button-group button:first-child {
+      margin-left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Toy Store</h1>
+    <form id="add-toy-form">
+      <input type="text" id="toy-name" placeholder="Toy Name" required>
+      <input type="text" id="toy-category" placeholder="Toy Category" required>
+      <input type="number" id="toy-price" placeholder="Toy Price" required>
+      <button type="submit">Add Toy</button>
+    </form>
+    <ul id="toy-list"></ul>
+  </div>
+
+  <script>
+    // Function to fetch and display the list of toys
+    function fetchToys() {
+      fetch('/toys')
+        .then(response => response.json())
+        .then(toys => {
+          const toyList = document.getElementById('toy-list');
+          toyList.innerHTML = '';
+
+          toys.forEach(toy => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+              <strong>ID:</strong> ${toy._id},
+              <strong>Name:</strong> ${toy.name},
+              <strong>Category:</strong> ${toy.category},
+              <strong>Price:</strong> $${toy.price.toFixed(2)}
+              <div class="button-group">
+                <button onclick="editToy('${toy._id}')">Edit</button>
+                <button onclick="deleteToy('${toy._id}')">Delete</button>
+              </div>
+            `;
+            toyList.appendChild(listItem);
+          });
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to delete a toy
+    function deleteToy(id) {
+      fetch(`/toys/${id}`, {
+        method: 'DELETE'
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+          fetchToys();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to edit a toy
+    function editToy(id) {
+      const newName = prompt('Enter the new name:');
+      const newCategory = prompt('Enter the new category:');
+      const newPrice = parseFloat(prompt('Enter the new price:'));
+
+      const updatedToy = {
+        _id: id,
+        name: newName,
+        category: newCategory,
+        price: newPrice
+      };
+
+      fetch(`/toys/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedToy)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+          fetchToys();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Add event listener to handle form submission
+    const addToyForm = document.getElementById('add-toy-form');
+    addToyForm.addEventListener('submit', event => {
+      event.preventDefault();
+
+      const toyName = document.getElementById('toy-name').value;
+      const toyCategory = document.getElementById('toy-category').value;
+      const toyPrice = parseFloat(document.getElementById('toy-price').value);
+
+      const toy = {
+        name: toyName,
+        category: toyCategory,
+        price: toyPrice
+      };
+
+      fetch('/toys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(toy)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+          fetchToys();
+          addToyForm.reset();
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Fetch and display the initial list of toys
+    fetchToys();
+  </script>
+</body>
+</html>
