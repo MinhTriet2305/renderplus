@@ -4,177 +4,307 @@
   <title>Toy Store</title>
   <style>
     body {
-      background-color: #f2f2f2;
       font-family: Arial, sans-serif;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
       text-align: center;
+    }
+
+    .form-container {
+      width: 400px;
+      margin: 0 auto;
+    }
+
+    .form-group {
       margin-bottom: 20px;
     }
 
-    form {
-      margin-bottom: 20px;
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
     }
 
-    input[type="text"],
-    input[type="number"] {
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="file"] {
       width: 100%;
-      padding: 10px;
+      padding: 8px;
+      font-size: 14px;
       border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-bottom: 10px;
+      border-radius: 4px;
+      box-sizing: border-box;
     }
 
-    ul {
-      list-style-type: none;
-      padding: 0;
+    .form-group button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
-    li {
-      background-color: #f9f9f9;
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 10px;
+    .product-list {
+      margin-top: 20px;
+    }
+
+    .product-item {
       display: flex;
+      align-items: center;
       justify-content: space-between;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
     }
 
-    .button-group {
+    .product-image {
+      width: 100px;
+      margin-right: 10px;
+    }
+
+    .product-info {
+      flex: 1;
+    }
+
+    .product-info h3 {
+      margin: 0;
+    }
+
+    .product-info p {
+      margin: 5px 0;
+    }
+
+    .product-actions {
       display: flex;
+      align-items: center;
     }
 
-    .button-group button {
-      margin-left: 5px;
-    }
-
-    .button-group button:first-child {
-      margin-left: 0;
+    .product-actions button {
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Toy Store</h1>
-    <form id="add-toy-form">
-      <input type="text" id="toy-name" placeholder="Toy Name" required>
-      <input type="text" id="toy-category" placeholder="Toy Category" required>
-      <input type="number" id="toy-price" placeholder="Toy Price" required>
-      <button type="submit">Add Toy</button>
+  <h1>Toy Store</h1>
+
+  <div class="form-container">
+    <h2>Add Product</h2>
+    <form id="add-product-form">
+      <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="form-group">
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" required>
+      </div>
+      <div class="form-group">
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" required>
+      </div>
+      <div class="form-group">
+        <label for="image">Image:</label>
+        <input type="file" id="image" name="image" accept="image/*" required>
+      </div>
+      <div class="form-group">
+        <button type="submit">Add Product</button>
+      </div>
     </form>
-    <ul id="toy-list"></ul>
+  </div>
+
+  <div class="product-list">
+    <h2>Product List</h2>
+    <div id="products"></div>
+  </div>
+
+  <div id="edit-product-modal" style="display: none;">
+    <h2>Edit Product</h2>
+    <form id="edit-product-form">
+      <input type="hidden" id="edit-product-id" name="id">
+      <div class="form-group">
+        <label for="edit-name">Name:</label>
+        <input type="text" id="edit-name" name="name" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-category">Category:</label>
+        <input type="text" id="edit-category" name="category" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-price">Price:</label>
+        <input type="number" id="edit-price" name="price" required>
+      </div>
+      <div class="form-group">
+        <label for="edit-image">Image:</label>
+        <input type="file" id="edit-image" name="image" accept="image/*" required>
+      </div>
+      <div class="form-group">
+        <button type="submit">Save Changes</button>
+        <button type="button" onclick="closeEditProductModal()">Cancel</button>
+      </div>
+    </form>
   </div>
 
   <script>
-    // Function to fetch and display the list of toys
-    function fetchToys() {
-      fetch('/toys')
-        .then(response => response.json())
-        .then(toys => {
-          const toyList = document.getElementById('toy-list');
-          toyList.innerHTML = '';
+    let editingProductId = '';
 
-          toys.forEach(toy => {
-            const listItem = document.createElement('li');
-            listItem.innerHTML = `
-              <strong>ID:</strong> ${toy._id},
-              <strong>Name:</strong> ${toy.name},
-              <strong>Category:</strong> ${toy.category},
-              <strong>Price:</strong> $${toy.price.toFixed(2)}
-              <div class="button-group">
-                <button onclick="editToy('${toy._id}')">Edit</button>
-                <button onclick="deleteToy('${toy._id}')">Delete</button>
-              </div>
-            `;
-            toyList.appendChild(listItem);
-          });
-        })
-        .catch(error => console.error('Error:', error));
+    function createProductItem(product) {
+      const productItem = document.createElement('div');
+      productItem.className = 'product-item';
+
+      const productImage = document.createElement('img');
+      productImage.className = 'product-image';
+      productImage.src = '/images/' + product.image;
+      productImage.alt = product.name;
+      productItem.appendChild(productImage);
+
+      const productInfo = document.createElement('div');
+      productInfo.className = 'product-info';
+
+      const productName = document.createElement('h3');
+      productName.textContent = product.name;
+      productInfo.appendChild(productName);
+
+      const productCategory = document.createElement('p');
+      productCategory.textContent = 'Category: ' + product.category;
+      productInfo.appendChild(productCategory);
+
+      const productPrice = document.createElement('p');
+      productPrice.textContent = 'Price: $' + product.price;
+      productInfo.appendChild(productPrice);
+
+      productItem.appendChild(productInfo);
+
+      const productActions = document.createElement('div');
+      productActions.className = 'product-actions';
+
+      const editButton = document.createElement('button');
+      editButton.textContent = 'Edit';
+      editButton.addEventListener('click', function() {
+        openEditProductModal(product);
+      });
+      productActions.appendChild(editButton);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', function() {
+        deleteProduct(product._id);
+      });
+      productActions.appendChild(deleteButton);
+
+      productItem.appendChild(productActions);
+
+      return productItem;
     }
 
-    // Function to delete a toy
-    function deleteToy(id) {
-      fetch(`/toys/${id}`, {
-        method: 'DELETE'
+    function fetchProducts() {
+      fetch('/toys')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Toys fetched successfully:', data);
+          const productList = document.getElementById('products');
+          productList.innerHTML = '';
+          data.forEach(toy => {
+            const productItem = createProductItem(toy);
+            productList.appendChild(productItem);
+          });
+        })
+        .catch(error => console.error('Error fetching toys:', error));
+    }
+
+    function addProduct(event) {
+      event.preventDefault();
+
+      const form = document.getElementById('add-product-form');
+      const formData = new FormData(form);
+
+      fetch('/toys', {
+        method: 'POST',
+        body: formData
       })
         .then(response => response.json())
         .then(data => {
-          console.log('Success:', data);
-          fetchToys();
+          console.log('Toy created successfully:', data);
+          form.reset();
+          fetchProducts();
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => console.error('Error creating toy:', error));
     }
 
-    // Function to edit a toy
-    function editToy(id) {
-      const newName = prompt('Enter the new name:');
-      const newCategory = prompt('Enter the new category:');
-      const newPrice = parseFloat(prompt('Enter the new price:'));
+    function deleteProduct(productId) {
+      if (confirm('Are you sure you want to delete this product?')) {
+        fetch(`/toys/${productId}`, {
+          method: 'DELETE'
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Toy deleted successfully:', data);
+            fetchProducts();
+          })
+          .catch(error => console.error('Error deleting toy:', error));
+      }
+    }
 
-      const updatedToy = {
-        _id: id,
-        name: newName,
-        category: newCategory,
-        price: newPrice
-      };
+    function openEditProductModal(product) {
+      const modal = document.getElementById('edit-product-modal');
+      const editForm = document.getElementById('edit-product-form');
+      const editProductId = document.getElementById('edit-product-id');
+      const editName = document.getElementById('edit-name');
+      const editCategory = document.getElementById('edit-category');
+      const editPrice = document.getElementById('edit-price');
+      const editImage = document.getElementById('edit-image');
 
-      fetch(`/toys/${id}`, {
+      editProductId.value = product._id;
+      editName.value = product.name;
+      editCategory.value = product.category;
+      editPrice.value = product.price;
+      editImage.value = '';
+
+      editingProductId = product._id;
+
+      modal.style.display = 'block';
+    }
+
+    function closeEditProductModal() {
+      const modal = document.getElementById('edit-product-modal');
+      modal.style.display = 'none';
+    }
+
+    function updateProduct(event) {
+      event.preventDefault();
+
+      const form = document.getElementById('edit-product-form');
+      const formData = new FormData(form);
+
+      // Create an object from the formData
+      const updatedProduct = {};
+      for (let [key, value] of formData) {
+        updatedProduct[key] = value;
+      }
+
+      fetch(`/toys/${editingProductId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updatedToy)
+        body: JSON.stringify(updatedProduct)
       })
         .then(response => response.json())
         .then(data => {
-          console.log('Success:', data);
-          fetchToys();
+          console.log('Product updated successfully:', data);
+          closeEditProductModal();
+          fetchProducts();
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => console.error('Error updating product:', error));
     }
 
-    // Add event listener to handle form submission
-    const addToyForm = document.getElementById('add-toy-form');
-    addToyForm.addEventListener('submit', event => {
-      event.preventDefault();
+    document.getElementById('add-product-form').addEventListener('submit', addProduct);
+    document.getElementById('edit-product-form').addEventListener('submit', updateProduct);
 
-      const toyName = document.getElementById('toy-name').value;
-      const toyCategory = document.getElementById('toy-category').value;
-      const toyPrice = parseFloat(document.getElementById('toy-price').value);
-
-      const toy = {
-        name: toyName,
-        category: toyCategory,
-        price: toyPrice
-      };
-
-      fetch('/toys', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(toy)
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Success:', data);
-          fetchToys();
-          addToyForm.reset();
-        })
-        .catch(error => console.error('Error:', error));
-    });
-
-    // Fetch and display the initial list of toys
-    fetchToys();
+    fetchProducts();
   </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
+const multer = require('multer');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -29,6 +30,17 @@ MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
   const db = client.db(dbName);
   toysCollection = db.collection(collectionName);
 });
+
+// Create a storage configuration for multer
+const storage = multer.diskStorage({
+  destination: './public/images',
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+// Create a multer instance with the storage configuration
+const upload = multer({ storage }).single('image');
 
 // Get all toys
 app.get('/toys', (req, res) => {
@@ -64,16 +76,25 @@ app.get('/toys/:id', (req, res) => {
 
 // Create a new toy
 app.post('/toys', (req, res) => {
-  const toy = req.body;
-  toysCollection
-    .insertOne(toy)
-    .then(() => {
-      res.status(201).json({ message: 'Toy created successfully.' });
-    })
-    .catch((error) => {
-      console.error('Error creating toy:', error);
+  upload(req, res, (error) => {
+    if (error) {
+      console.error('Error uploading image:', error);
       res.status(500).json({ error: 'Internal server error' });
-    });
+    } else {
+      const toy = req.body;
+      toy.image = req.file ? req.file.filename : ''; // Save the uploaded image filename to the toy object
+
+      toysCollection
+        .insertOne(toy)
+        .then(() => {
+          res.status(201).json({ message: 'Toy created successfully.' });
+        })
+        .catch((error) => {
+          console.error('Error creating toy:', error);
+          res.status(500).json({ error: 'Internal server error' });
+        });
+    }
+  });
 });
 
 // Update a toy
@@ -81,16 +102,24 @@ app.put('/toys/:id', (req, res) => {
   const id = req.params.id;
   const updatedToy = req.body;
   toysCollection
-    .updateOne({ _id: ObjectId(id) }, { $set: updatedToy })
-    .then((result) => {
-      if (result.modifiedCount === 1) {
-        res.json({ message: 'Toy updated successfully.' });
+    .findOne({ _id: ObjectId(id) })
+    .then((toy) => {
+      if (toy) {
+        toysCollection
+          .updateOne({ _id: ObjectId(id) }, { $set: updatedToy })
+          .then(() => {
+            res.json({ message: 'Toy updated successfully.' });
+          })
+          .catch((error) => {
+            console.error('Error updating toy:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          });
       } else {
         res.status(404).json({ error: 'Toy not found.' });
       }
     })
     .catch((error) => {
-      console.error('Error updating toy:', error);
+      console.error('Error fetching toy:', error);
       res.status(500).json({ error: 'Internal server error' });
     });
 });
@@ -99,27 +128,30 @@ app.put('/toys/:id', (req, res) => {
 app.delete('/toys/:id', (req, res) => {
   const id = req.params.id;
   toysCollection
-    .deleteOne({ _id: ObjectId(id) })
-    .then((result) => {
-      if (result.deletedCount === 1) {
-        res.json({ message: 'Toy deleted successfully.' });
+    .findOne({ _id: ObjectId(id) })
+    .then((toy) => {
+      if (toy) {
+        toysCollection
+          .deleteOne({ _id: ObjectId(id) })
+          .then(() => {
+            res.json({ message: 'Toy deleted successfully.' });
+          })
+          .catch((error) => {
+            console.error('Error deleting toy:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          });
       } else {
         res.status(404).json({ error: 'Toy not found.' });
       }
     })
     .catch((error) => {
-      console.error('Error deleting toy:', error);
+      console.error('Error fetching toy:', error);
       res.status(500).json({ error: 'Internal server error' });
     });
-});
-
-// Serve the HTML file
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start the server
 const port = 3000;
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
